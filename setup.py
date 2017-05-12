@@ -26,7 +26,7 @@ setup(
     author='wikibusiness',
     author_email='osf@wikibusiness.org',
     url='https://github.com/wikibusiness/asyncio_monkey',
-    description='Simple lru_cache for asyncio',
+    description='monkey patch asyncio modules for expected behaviour',
     long_description=read('README.rst'),
     extras_require={
         ':python_version=="3.3"': ['asyncio'],
