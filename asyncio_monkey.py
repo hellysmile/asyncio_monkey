@@ -2,7 +2,7 @@ import sys
 
 PY_360 = sys.version_info >= (3, 6, 0)
 
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 
 
 def patch_log_destroy_pending():
