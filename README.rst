@@ -21,8 +21,10 @@ Usage
 
 .. code-block:: python
 
-    # it must be done before any import asyncio statement
-    from asyncio_monkey import patch_all; patch_all()  # noqa
+    # it must be done before any import asyncio statement, once per project
+    # best place is __init__.py of You'r application
+    from asyncio_monkey import patch_all  # noqa isort:skip
+    patch_all()  # noqa isort:skip
 
 Features
 --------
