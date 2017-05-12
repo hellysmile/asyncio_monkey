@@ -25,8 +25,14 @@ def create_task(*, loop=None):
 def test_patch_log_destroy_pending():
     assert not hasattr(asyncio.Task, 'patched')
 
-    fut = asyncio.Future()
-    task = create_task()(fut)
+    loop = asyncio.get_event_loop()
+
+    @asyncio.coroutine
+    def corofunction():
+        pass
+
+    coro = corofunction()
+    task = create_task()(coro)
 
     assert task._log_destroy_pending
 
@@ -35,7 +41,6 @@ def test_patch_log_destroy_pending():
     assert not task._log_destroy_pending
 
     task.cancel()
-    fut.cancel()
 
     ###
 
@@ -46,8 +51,8 @@ def test_patch_log_destroy_pending():
 
     assert hasattr(asyncio.Task, 'patched')
 
-    fut = asyncio.Future()
-    task = create_task()(fut)
+    coro = corofunction()
+    task = create_task()(coro)
 
     assert task._log_destroy_pending
 
@@ -56,7 +61,8 @@ def test_patch_log_destroy_pending():
     assert task._log_destroy_pending
 
     task.cancel()
-    fut.cancel()
+
+    loop.close()
 
 
 def test_get_event_loop():
