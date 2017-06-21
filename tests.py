@@ -1,5 +1,5 @@
 import asyncio
-import importlib
+
 from asyncio import test_utils
 from functools import partial
 from unittest import mock
@@ -106,6 +106,39 @@ def test_get_event_loop():
     loop.close()
 
 
+def test_no_patch_lock():
+    if PY_362:
+        return
+
+    loop = asyncio.new_event_loop()
+
+    assert not hasattr(asyncio.Lock, 'patched')
+    assert not hasattr(asyncio.locks.Lock, 'patched')
+
+    lock = asyncio.Lock(loop=loop)
+
+    ta = asyncio.Task(lock.acquire(), loop=loop)
+    test_utils.run_briefly(loop)
+    assert lock.locked()
+
+    tb = asyncio.Task(lock.acquire(), loop=loop)
+    test_utils.run_briefly(loop)
+    assert len(lock._waiters) == 1
+
+    # Create a second waiter, wake up the first, and cancel it.
+    # Without the fix, the second was not woken up.
+    tc = asyncio.Task(lock.acquire(), loop=loop)
+    lock.release()
+    tb.cancel()
+    test_utils.run_briefly(loop)
+
+    assert not lock.locked()
+    assert ta.done()
+    assert tb.cancelled()
+
+    loop.close()
+
+
 def test_patch_lock():
     loop = asyncio.new_event_loop()
 
@@ -143,42 +176,6 @@ def test_patch_lock():
     loop.close()
 
 
-def test_no_patch_lock():
-    if PY_362:
-        return
-
-    importlib.reload(asyncio.locks)
-    importlib.reload(asyncio)
-
-    loop = asyncio.new_event_loop()
-
-    assert not hasattr(asyncio.Lock, 'patched')
-    assert not hasattr(asyncio.locks.Lock, 'patched')
-
-    lock = asyncio.Lock(loop=loop)
-
-    ta = asyncio.Task(lock.acquire(), loop=loop)
-    test_utils.run_briefly(loop)
-    assert lock.locked()
-
-    tb = asyncio.Task(lock.acquire(), loop=loop)
-    test_utils.run_briefly(loop)
-    assert len(lock._waiters) == 1
-
-    # Create a second waiter, wake up the first, and cancel it.
-    # Without the fix, the second was not woken up.
-    tc = asyncio.Task(lock.acquire(), loop=loop)
-    lock.release()
-    tb.cancel()
-    test_utils.run_briefly(loop)
-
-    assert not lock.locked()
-    assert ta.done()
-    assert tb.cancelled()
-
-    loop.close()
-
-
 def test_patch_all():
     with mock.patch('asyncio_monkey.patch_get_event_loop') as mocked_patch_get_event_loop, \
             mock.patch('asyncio_monkey.patch_log_destroy_pending') as mocked_patch_log_destroy_pending, \
@@ -186,6 +183,6 @@ def test_patch_all():
 
         patch_all()
 
-        mocked_patch_get_event_loop.assert_called_once()
-        mocked_patch_log_destroy_pending.assert_called_once()
-        mocked_patch_lock.assert_called_once()
+        assert mocked_patch_get_event_loop.called_once()
+        assert mocked_patch_log_destroy_pending.called_once()
+        assert mocked_patch_lock.called_once()
