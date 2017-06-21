@@ -91,7 +91,7 @@ def patch_lock():
                 self._locked = True
                 return True
 
-            fut = _create_future(self._loop)
+            fut = _create_future(loop=self._loop)
 
             self._waiters.append(fut)
             try:
