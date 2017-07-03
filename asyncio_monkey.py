@@ -110,6 +110,7 @@ def patch_lock():
             for fut in self._waiters:
                 if not fut.done():
                     fut.set_result(True)
+                    break
 
     asyncio.locks.Lock = Lock
     asyncio.Lock = Lock
