@@ -42,9 +42,9 @@ or call the one you need
 Features
 --------
 
-- Cancel pending tasks `gather` if any task fails, `issue <https://bugs.python.org/issue31452>`_
+- Cancel pending tasks `gather` if any task fails, `source <https://bugs.python.org/issue31452>`_
 
-- Disables `get_event_loop` returns currently running loop, even if `MainThread` loop is `None`, `docs <https://docs.python.org/3/library/asyncio-eventloops.html#asyncio.get_event_loop>`_
+- Disables `get_event_loop` returns currently running loop, even if `MainThread` loop is `None`, `docs <https://docs.python.org/3/library/asyncio-eventloops.html#asyncio.get_event_loop>`_ , `source <https://bugs.python.org/issue28613>`_
 
 - Disables silent destroying futures inside `asyncio.gather` `source <https://github.com/python/cpython/blob/3dc7c52a9f4fb83be3e26e31e2c7cd9dc1cb41a2/Lib/asyncio/tasks.py#L600>`_
 
