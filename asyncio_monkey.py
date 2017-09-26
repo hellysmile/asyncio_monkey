@@ -11,8 +11,6 @@ PY_362 = sys.version_info >= (3, 6, 2)
 
 asyncio = None
 
-_all = []
-
 
 def _create_future(*, loop=None):
     global asyncio
@@ -47,8 +45,6 @@ def _ensure_future(*, loop=None):
 
 
 def patch_gather():
-    _all.append(patch_gather)
-
     import asyncio
 
     if hasattr(asyncio.tasks.gather, 'patched'):
@@ -82,8 +78,6 @@ def patch_gather():
 
 
 def patch_log_destroy_pending():
-    _all.append(patch_log_destroy_pending)
-
     import asyncio
 
     if hasattr(asyncio.tasks.Task, 'patched'):
