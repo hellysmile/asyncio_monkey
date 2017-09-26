@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 from asyncio_monkey import (
-    PY_360, PY_362, patch_all, patch_get_event_loop,
+    patch_all, patch_get_event_loop,
     patch_lock, patch_log_destroy_pending,
 )
 
@@ -68,9 +68,6 @@ def test_patch_log_destroy_pending():
 
 
 def test_get_event_loop():
-    if not PY_360:
-        return
-
     @asyncio.coroutine
     def coro():
         loop = asyncio.get_event_loop()
@@ -107,9 +104,6 @@ def test_get_event_loop():
 
 
 def test_no_patch_lock():
-    if PY_362:
-        return
-
     loop = asyncio.new_event_loop()
 
     assert not hasattr(asyncio.Lock, 'patched')
