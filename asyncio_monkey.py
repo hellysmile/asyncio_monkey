@@ -1,3 +1,5 @@
+from functools import partial
+
 __version__ = '0.1.0'
 
 
@@ -16,7 +18,57 @@ def _create_future(*, loop=None):
         if asyncio is None:
             import asyncio as _asyncio
             asyncio = _asyncio
+
         return asyncio.Future(loop=loop)
+
+
+def _ensure_future(*, loop=None):
+    global asyncio
+
+    if asyncio is None:
+        import asyncio as _asyncio
+        asyncio = _asyncio
+
+    if loop is None:
+        loop = asyncio.get_event_loop()
+
+    try:
+        return partial(asyncio.ensure_future, loop=loop)
+    except AttributeError:
+        return partial(getattr(asyncio, 'async'), loop=loop)
+
+
+def patch_gather():
+    import asyncio
+
+    if hasattr(asyncio.tasks.gather, 'patched'):
+        return
+
+    _gather = asyncio.tasks.gather
+
+    @asyncio.coroutine
+    def gather(*coros_or_futures, loop=None, return_exceptions=False):
+        coros_or_futures = [
+            _ensure_future(loop=loop)(fut)
+            for fut in coros_or_futures
+        ]
+
+        try:
+            coro = _gather(
+                *coros_or_futures,
+                loop=loop,
+                return_exceptions=return_exceptions
+            )
+            return (yield from coro)
+        except:  # noqa
+            for fut in coros_or_futures:
+                if not fut.done():
+                    fut.cancel()
+            raise
+    gather.patched = True
+
+    asyncio.tasks.gather = gather
+    asyncio.gather = gather
 
 
 def patch_log_destroy_pending():
@@ -73,6 +125,7 @@ def patch_lock():
     # the stdlib implementation or this one patched
 
     class Lock(asyncio.locks.Lock):
+
         patched = True
 
         @asyncio.coroutine
@@ -111,6 +164,7 @@ def patch_lock():
 
 
 def patch_all():
-    patch_log_destroy_pending()
+    patch_gather()
     patch_get_event_loop()
+    patch_log_destroy_pending()
     patch_lock()
