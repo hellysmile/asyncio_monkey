@@ -202,8 +202,8 @@ def test_patch_gather(loop):
     for fut in futs:
         assert fut.done()
 
-    assert futs[0].result() is 1
-    assert futs[1].result() is 2
+    assert futs[0].result() == 1
+    assert futs[1].result() == 2
 
     with pytest.raises(ZeroDivisionError):
         futs[2].result()
