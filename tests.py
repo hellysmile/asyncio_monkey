@@ -112,7 +112,7 @@ def test_no_patch_lock(loop):
 
     # Create a second waiter, wake up the first, and cancel it.
     # Without the fix, the second was not woken up.
-    asyncio.Task(lock.acquire(), loop=loop)
+    tc = asyncio.Task(lock.acquire(), loop=loop)
     lock.release()
     tb.cancel()
     test_utils.run_briefly(loop)
@@ -144,7 +144,7 @@ def test_patch_lock(loop):
 
     # Create a second waiter, wake up the first, and cancel it.
     # Without the fix, the second was not woken up.
-    asyncio.Task(lock.acquire(), loop=loop)
+    tc = asyncio.Task(lock.acquire(), loop=loop)
     lock.release()
     tb.cancel()
     test_utils.run_briefly(loop)
