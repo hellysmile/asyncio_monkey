@@ -1,14 +1,11 @@
-import sys
+__version__ = '0.1.0'
 
-PY_360 = sys.version_info >= (3, 6, 0)
 
-PY_362 = sys.version_info >= (3, 6, 2)
-
-__version__ = '0.0.4'
+asyncio = None
 
 
 def _create_future(*, loop=None):
-    import asyncio
+    global asyncio
 
     if loop is None:
         loop = asyncio.get_event_loop()
@@ -16,6 +13,9 @@ def _create_future(*, loop=None):
     try:
         return loop.create_future()
     except AttributeError:
+        if asyncio is None:
+            import asyncio as _asyncio
+            asyncio = _asyncio
         return asyncio.Future(loop=loop)
 
 
@@ -52,9 +52,6 @@ def patch_get_event_loop():
     if hasattr(asyncio.events.get_event_loop, 'patched'):
         return
 
-    if not PY_360:
-        return
-
     def get_event_loop():
         return asyncio.events.get_event_loop_policy().get_event_loop()
     get_event_loop.patched = True
@@ -65,9 +62,6 @@ def patch_get_event_loop():
 
 def patch_lock():
     import asyncio
-
-    if PY_362:
-        return
 
     if hasattr(asyncio.locks.Lock, 'patched'):
         return
