@@ -1,5 +1,4 @@
 import sys
-
 from functools import partial
 
 __version__ = '0.1.0'
@@ -122,7 +121,7 @@ def patch_get_event_loop():
 
 
 def patch_lock():
-    if not PY_362:
+    if PY_362:
         return
 
     import asyncio

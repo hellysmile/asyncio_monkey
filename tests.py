@@ -129,6 +129,9 @@ def test_no_patch_lock(loop):
 
 
 def test_patch_lock(loop):
+    if PY_362:
+        return
+
     assert not hasattr(asyncio.Lock, 'patched')
     assert not hasattr(asyncio.locks.Lock, 'patched')
 
