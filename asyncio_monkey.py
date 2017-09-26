@@ -1,9 +1,17 @@
+import sys
+
 from functools import partial
 
 __version__ = '0.1.0'
 
 
+PY_353 = sys.version_info >= (3, 5, 3)
+PY_362 = sys.version_info >= (3, 6, 2)
+
+
 asyncio = None
+
+_all = []
 
 
 def _create_future(*, loop=None):
@@ -39,6 +47,8 @@ def _ensure_future(*, loop=None):
 
 
 def patch_gather():
+    _all.append(patch_gather)
+
     import asyncio
 
     if hasattr(asyncio.tasks.gather, 'patched'):
@@ -72,6 +82,8 @@ def patch_gather():
 
 
 def patch_log_destroy_pending():
+    _all.append(patch_log_destroy_pending)
+
     import asyncio
 
     if hasattr(asyncio.tasks.Task, 'patched'):
@@ -99,6 +111,9 @@ def patch_log_destroy_pending():
 
 
 def patch_get_event_loop():
+    if not PY_353:
+        return
+
     import asyncio
 
     if hasattr(asyncio.events.get_event_loop, 'patched'):
@@ -113,6 +128,9 @@ def patch_get_event_loop():
 
 
 def patch_lock():
+    if not PY_362:
+        return
+
     import asyncio
 
     if hasattr(asyncio.locks.Lock, 'patched'):
