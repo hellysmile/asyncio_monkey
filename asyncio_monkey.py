@@ -51,25 +51,31 @@ def patch_gather():
 
     _gather = asyncio.tasks.gather
 
-    @asyncio.coroutine
     def gather(*coros_or_futures, loop=None, return_exceptions=False):
         coros_or_futures = [
             _ensure_future(loop=loop)(fut)
             for fut in coros_or_futures
         ]
 
-        try:
-            coro = _gather(
-                *coros_or_futures,
-                loop=loop,
-                return_exceptions=return_exceptions
-            )
-            return (yield from coro)
-        except:  # noqa
-            for fut in coros_or_futures:
-                if not fut.done():
-                    fut.cancel()
-            raise
+        outer = _gather(
+            *coros_or_futures,
+            loop=loop,
+            return_exceptions=return_exceptions
+        )
+
+        def _done_callback(_):
+            if return_exceptions:
+                return
+
+            if outer.cancelled() or outer._exception is not None:
+                for fut in coros_or_futures:
+                    if not fut.done():
+                        fut.cancel()
+
+        outer.add_done_callback(_done_callback)
+
+        return outer
+
     gather.patched = True
 
     asyncio.tasks.gather = gather

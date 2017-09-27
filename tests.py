@@ -199,6 +199,8 @@ def test_patch_gather(loop):
 
     assert counter == 2
 
+    test_utils.run_briefly(loop)
+
     for fut in futs:
         assert fut.done()
 
