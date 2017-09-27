@@ -1,7 +1,7 @@
 import sys
 from functools import partial
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 
 PY_353 = sys.version_info >= (3, 5, 3)
