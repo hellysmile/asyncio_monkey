@@ -1,40 +1,43 @@
 import asyncio
-
+import os
 from asyncio import test_utils
-from functools import partial
 from unittest import mock
 
 import pytest
 from asyncio_monkey import (
-    PY_360, PY_362, patch_all, patch_get_event_loop,
-    patch_lock, patch_log_destroy_pending,
+    PY_353, PY_362, patch_all, patch_gather, patch_get_event_loop,
+    patch_lock, patch_log_destroy_pending, _ensure_future
 )
 
 
-def create_task(*, loop=None):
-    if loop is None:
-        loop = asyncio.get_event_loop()
+@pytest.fixture
+def loop(request):
+    asyncio.set_event_loop(None)
 
-    try:
-        return loop.create_task
-    except AttributeError:
-        try:
-            return partial(asyncio.ensure_future, loop=loop)
-        except AttributeError:
-            return partial(getattr(asyncio, 'async'), loop=loop)
+    loop = asyncio.new_event_loop()
+
+    loop.set_debug(bool(os.environ.get('PYTHONASYNCIODEBUG')))
+
+    request.addfinalizer(lambda: asyncio.set_event_loop(None))
+
+    yield loop
+
+    loop.call_soon(loop.stop)
+
+    loop.run_forever()
+
+    loop.close()
 
 
-def test_patch_log_destroy_pending():
+def test_patch_log_destroy_pending(loop):
     assert not hasattr(asyncio.Task, 'patched')
-
-    loop = asyncio.get_event_loop()
 
     @asyncio.coroutine
     def corofunction():
         pass
 
     coro = corofunction()
-    task = create_task()(coro)
+    task = _ensure_future(loop=loop)(coro)
 
     assert task._log_destroy_pending
 
@@ -54,7 +57,7 @@ def test_patch_log_destroy_pending():
     assert hasattr(asyncio.Task, 'patched')
 
     coro = corofunction()
-    task = create_task()(coro)
+    task = _ensure_future(loop=loop)(coro)
 
     assert task._log_destroy_pending
 
@@ -64,22 +67,16 @@ def test_patch_log_destroy_pending():
 
     task.cancel()
 
-    loop.close()
 
-
-def test_get_event_loop():
-    if not PY_360:
+def test_get_event_loop(loop):
+    if not PY_353:
         return
 
     @asyncio.coroutine
     def coro():
-        loop = asyncio.get_event_loop()
+        return asyncio.get_event_loop()
 
         return loop
-
-    asyncio.set_event_loop(None)
-
-    loop = asyncio.new_event_loop()
 
     ###
 
@@ -101,16 +98,10 @@ def test_get_event_loop():
     with pytest.raises(RuntimeError):
         loop.run_until_complete(coro())
 
-    ###
 
-    loop.close()
-
-
-def test_no_patch_lock():
+def test_no_patch_lock(loop):
     if PY_362:
         return
-
-    loop = asyncio.new_event_loop()
 
     assert not hasattr(asyncio.Lock, 'patched')
     assert not hasattr(asyncio.locks.Lock, 'patched')
@@ -136,11 +127,10 @@ def test_no_patch_lock():
     assert ta.done()
     assert tb.cancelled()
 
-    loop.close()
 
-
-def test_patch_lock():
-    loop = asyncio.new_event_loop()
+def test_patch_lock(loop):
+    if PY_362:
+        return
 
     assert not hasattr(asyncio.Lock, 'patched')
     assert not hasattr(asyncio.locks.Lock, 'patched')
@@ -173,16 +163,65 @@ def test_patch_lock():
     assert ta.done()
     assert tb.cancelled()
 
-    loop.close()
+
+def test_patch_gather(loop):
+    assert not hasattr(asyncio.gather, 'patched')
+    assert not hasattr(asyncio.tasks.gather, 'patched')
+
+    patch_gather()
+    patch_gather()
+
+    assert hasattr(asyncio.gather, 'patched')
+    assert hasattr(asyncio.tasks.gather, 'patched')
+
+    counter = 0
+
+    @asyncio.coroutine
+    def incr_counter(t):
+        nonlocal counter
+
+        yield from asyncio.sleep(t, loop=loop)
+        counter += 1
+
+        return counter
+
+    @asyncio.coroutine
+    def fail(t):
+        yield from asyncio.sleep(t, loop=loop)
+        raise ZeroDivisionError
+
+    coros = [incr_counter(.1), incr_counter(.2), fail(0.3), incr_counter(.4)]
+
+    futs = [_ensure_future(loop=loop)(f) for f in coros]
+
+    with pytest.raises(ZeroDivisionError):
+        loop.run_until_complete(asyncio.gather(*futs, loop=loop))
+
+    assert counter == 2
+
+    for fut in futs:
+        assert fut.done()
+
+    assert futs[0].result() == 1
+    assert futs[1].result() == 2
+
+    with pytest.raises(ZeroDivisionError):
+        futs[2].result()
+
+    with pytest.raises(asyncio.CancelledError):
+        futs[3].result()
 
 
 def test_patch_all():
-    with mock.patch('asyncio_monkey.patch_get_event_loop') as mocked_patch_get_event_loop, \
-            mock.patch('asyncio_monkey.patch_log_destroy_pending') as mocked_patch_log_destroy_pending, \
-                mock.patch('asyncio_monkey.patch_lock') as mocked_patch_lock:  # noqa
+    with \
+        mock.patch('asyncio_monkey.patch_gather') as mocked_patch_gather, \
+        mock.patch('asyncio_monkey.patch_get_event_loop') as mocked_patch_get_event_loop, \
+        mock.patch('asyncio_monkey.patch_log_destroy_pending') as mocked_patch_log_destroy_pending, \
+        mock.patch('asyncio_monkey.patch_lock') as mocked_patch_lock:  # noqa
 
         patch_all()
 
+        assert mocked_patch_gather.called_once()
         assert mocked_patch_get_event_loop.called_once()
         assert mocked_patch_log_destroy_pending.called_once()
         assert mocked_patch_lock.called_once()
