@@ -67,10 +67,12 @@ def patch_gather():
             if return_exceptions:
                 return
 
-            if outer.cancelled() or outer._exception is not None:
-                for fut in coros_or_futures:
-                    if not fut.done():
-                        fut.cancel()
+            if not outer.cancelled() and outer._exception is None:
+                return
+
+            for fut in coros_or_futures:
+                if not fut.done():
+                    fut.cancel()
 
         outer.add_done_callback(_done_callback)
 
