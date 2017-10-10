@@ -1,5 +1,6 @@
 import asyncio
 import os
+import gc
 from asyncio import test_utils
 from unittest import mock
 
@@ -11,7 +12,7 @@ from asyncio_monkey import (
 
 
 @pytest.fixture
-def event_loop(request):
+def loop(request):
     asyncio.set_event_loop(None)
     loop = asyncio.new_event_loop()
     loop.set_debug(bool(os.environ.get('PYTHONASYNCIODEBUG')))
