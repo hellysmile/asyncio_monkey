@@ -11,11 +11,9 @@ from asyncio_monkey import (
 
 
 @pytest.fixture
-def loop(request):
+def event_loop(request):
     asyncio.set_event_loop(None)
-
     loop = asyncio.new_event_loop()
-
     loop.set_debug(bool(os.environ.get('PYTHONASYNCIODEBUG')))
 
     request.addfinalizer(lambda: asyncio.set_event_loop(None))
@@ -23,10 +21,10 @@ def loop(request):
     yield loop
 
     loop.call_soon(loop.stop)
-
     loop.run_forever()
-
     loop.close()
+
+    gc.collect()
 
 
 def test_patch_log_destroy_pending(loop):
