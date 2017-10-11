@@ -10,6 +10,8 @@ from asyncio_monkey import (
     patch_lock, patch_log_destroy_pending, _ensure_future
 )
 
+asyncio.set_event_loop(None)
+
 
 @pytest.fixture
 def loop(request):
