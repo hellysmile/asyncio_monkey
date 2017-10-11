@@ -14,12 +14,9 @@ asyncio.set_event_loop(None)
 
 
 @pytest.fixture
-def loop(request):
-    asyncio.set_event_loop(None)
+def event_loop(request):
     loop = asyncio.new_event_loop()
     loop.set_debug(bool(os.environ.get('PYTHONASYNCIODEBUG')))
-
-    request.addfinalizer(lambda: asyncio.set_event_loop(None))
 
     yield loop
 
@@ -28,6 +25,14 @@ def loop(request):
     loop.close()
 
     gc.collect()
+
+
+@pytest.fixture
+def loop(event_loop, request):
+    asyncio.set_event_loop(None)
+    request.addfinalizer(lambda: asyncio.set_event_loop(None))
+
+    return event_loop
 
 
 def test_patch_log_destroy_pending(loop):
